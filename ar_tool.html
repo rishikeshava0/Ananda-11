@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AR Automation Tool – Invoice to Payment</title>
+  <style>
+    :root {
+      --primary: #1e40af;
+      --primary-light: #3b82f6;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: white;
+      padding: 24px 20px;
+      margin-bottom: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+    }
+    header h1 { font-size: 1.75rem; margin-bottom: 4px; }
+    header p { opacity: 0.9; font-size: 0.95rem; }
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    nav button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: white;
+      color: var(--text);
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+    nav button:hover { background: #f1f5f9; }
+    nav button.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card h2 { font-size: 1.25rem; margin-bottom: 16px; color: var(--primary); }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metric {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .metric .value { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
+    .metric .label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    .metric.danger .value { color: var(--danger); }
+    .metric.success .value { color: var(--success); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { background: #f1f5f9; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    tr:hover { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-draft { background: #e2e8f0; color: #475569; }
+    .badge-sent { background: #dbeafe; color: #1d4ed8; }
+    .badge-partial { background: #fef3c7; color: #b45309; }
+    .badge-paid { background: #d1fae5; color: #047857; }
+    .badge-overdue { background: #fee2e2; color: #b91c1c; }
+    form { display: grid; gap: 14px; max-width: 500px; }
+    label { font-weight: 500; font-size: 0.9rem; }
+    input, select, textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #1e3a8a; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f1f5f9; }
+    .hidden { display: none !important; }
+    .flex { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .text-muted { color: var(--muted); font-size: 0.9rem; }
+    .success-msg { background: #d1fae5; color: #047857; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+    .error-msg { background: #fee2e2; color: #b91c1c; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+    .aging-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .aging-item:last-child { border-bottom: none; font-weight: 700; }
+    footer { text-align: center; padding: 24px; color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>💰 AR Automation Tool</h1>
+      <p>Invoice → Reminders → Payment → Cash Application</p>
+    </header>
+
+    <nav>
+      <button class="active" data-page="dashboard">Dashboard</button>
+      <button data-page="customers">Customers</button>
+      <button data-page="invoices">Invoices</button>
+      <button data-page="payment">Record Payment</button>
+      <button data-page="reminders">Reminders</button>
+    </nav>
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page">
+      <div class="metrics" id="metrics"></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="card">
+          <h2>Cash Position</h2>
+          <div id="cash-position"></div>
+        </div>
+        <div class="card">
+          <h2>Aging Report</h2>
+          <div id="aging-report"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Open Invoices</h2>
+        <div id="open-invoices-table"></div>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div id="page-customers" class="page hidden">
+      <div class="card">
+        <h2>All Customers</h2>
+        <div id="customers-table"></div>
+      </div>
+      <div class="card">
+        <h2>Add New Customer</h2>
+        <form id="form-customer">
+          <div>
+            <label>Customer Name *</label>
+            <input type="text" id="cust-name" required />
+          </div>
+          <div>
+            <label>Email</label>
+            <input type="email" id="cust-email" />
+          </div>
+          <div>
+            <label>Phone</label>
+            <input type="text" id="cust-phone" />
+          </div>
+          <div>
+            <label>Payment Terms (days)</label>
+            <input type="number" id="cust-terms" value="30" min="0" />
+          </div>
+          <div>
+            <label>Notes</label>
+            <textarea id="cust-notes" rows="2"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Add Customer</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- INVOICES -->
+    <div id="page-invoices" class="page hidden">
+      <div class="card">
+        <div class="flex" style="justify-content: space-between; margin-bottom: 16px;">
+          <h2 style="margin:0;">All Invoices</h2>
+          <select id="invoice-filter">
+            <option value="All">All Statuses</option>
+            <option value="Draft">Draft</option>
+            <option value="Sent">Sent</option>
+            <option value="Partially Paid">Partially Paid</option>
+            <option value="Paid">Paid</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </div>
+        <div id="invoices-table"></div>
+      </div>
+      <div class="card">
+        <h2>Create Invoice</h2>
+        <form id="form-invoice">
+          <div>
+            <label>Customer *</label>
+            <select id="inv-customer" required></select>
+          </div>
+          <div>
+            <label>Amount *</label>
+            <input type="number" id="inv-amount" step="0.01" min="0.01" value="1000" required />
+          </div>
+          <div>
+            <label>Description</label>
+            <textarea id="inv-desc" rows="2"></textarea>
+          </div>
+          <div>
+            <label>Due in (days)</label>
+            <input type="number" id="inv-days" value="30" min="0" />
+          </div>
+          <div class="flex">
+            <label><input type="checkbox" id="inv-sent" /> Mark as Sent immediately</label>
+          </div>
+          <button type="submit" class="btn btn-primary">Create Invoice</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RECORD PAYMENT -->
+    <div id="page-payment" class="page hidden">
+      <div class="card">
+        <h2>Open Invoices</h2>
+        <div id="payment-open-table"></div>
+      </div>
+      <div class="card">
+        <h2>Apply Payment</h2>
+        <form id="form-payment">
+          <div>
+            <label>Select Invoice *</label>
+            <select id="pay-invoice" required></select>
+          </div>
+          <div>
+            <label>Payment Amount *</label>
+            <input type="number" id="pay-amount" step="0.01" min="0.01" required />
+          </div>
+          <div>
+            <label>Payment Method</label>
+            <select id="pay-method">
+              <option>Bank Transfer</option>
+              <option>Credit Card</option>
+              <option>Check</option>
+              <option>Cash</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Reference / Transaction ID</label>
+            <input type="text" id="pay-ref" />
+          </div>
+          <button type="submit" class="btn btn-success">Record Payment</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- REMINDERS -->
+    <div id="page-reminders" class="page hidden">
+      <div class="card">
+        <h2>Invoices Needing Attention</h2>
+        <div id="reminders-table"></div>
+        <div style="margin-top: 16px;">
+          <button class="btn btn-primary" id="btn-send-reminders">Simulate Sending All Reminders</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      AR Automation Tool · Data stored locally in your browser · Sample data included
+    </footer>
+  </div>
+
+  <script>
+    // ==================== DATA LAYER (localStorage) ====================
+    const STORAGE_KEY = 'ar_automation_data_v1';
+
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+      // Seed sample data
+      const today = new Date();
+      const data = {
+        customers: [
+          { id: 1, name: 'Acme Corp', email: 'ap@acme.com', phone: '555-0101', payment_terms: 30, notes: 'Key account' },
+          { id: 2, name: 'Globex Industries', email: 'billing@globex.com', phone: '555-0202', payment_terms: 45, notes: '' },
+          { id: 3, name: 'Initech LLC', email: 'finance@initech.com', phone: '555-0303', payment_terms: 15, notes: 'Fast payer' },
+          { id: 4, name: 'Umbrella Co', email: 'payables@umbrella.com', phone: '555-0404', payment_terms: 30, notes: '' }
+        ],
+        invoices: [],
+        payments: [],
+        nextCustomerId: 5,
+        nextInvoiceId: 1,
+        nextPaymentId: 1
+      };
+      // Create sample invoices
+      const invs = [
+        { customer_id: 1, amount: 2500, days_ago: 40, due_days: 30, desc: 'Consulting services - Q3', status: 'Paid', paid: 2500 },
+        { customer_id: 2, amount: 8750, days_ago: 10, due_days: 45, desc: 'Software license + support', status: 'Partially Paid', paid: 3000 },
+        { customer_id: 1, amount: 4200, days_ago: 45, due_days: 30, desc: 'Project milestone 2', status: 'Sent', paid: 0 },
+        { customer_id: 4, amount: 1890.50, days_ago: 65, due_days: 30, desc: 'Hardware maintenance', status: 'Sent', paid: 0 },
+        { customer_id: 3, amount: 950, days_ago: 10, due_days: 15, desc: 'Training workshop', status: 'Sent', paid: 0 },
+        { customer_id: 2, amount: 12500, days_ago: 0, due_days: 45, desc: 'Annual retainer - Year 2', status: 'Draft', paid: 0 },
+        { customer_id: 4, amount: 6750, days_ago: 120, due_days: 30, desc: 'Custom development', status: 'Sent', paid: 0 }
+      ];
+      invs.forEach((s, idx) => {
+        const issue = new Date(today);
+        issue.setDate(issue.getDate() - s.days_ago);
+        const due = new Date(issue);
+        due.setDate(due.getDate() + s.due_days);
+        const inv = {
+          id: idx + 1,
+          invoice_number: `INV-${issue.toISOString().slice(0,10).replace(/-/g,'')}-${String(idx+1).padStart(3,'0')}`,
+          customer_id: s.customer_id,
+          issue_date: issue.toISOString().slice(0,10),
+          due_date: due.toISOString().slice(0,10),
+          amount: s.amount,
+          amount_paid: s.paid,
+          status: s.status,
+          description: s.desc
+        };
+        // Auto overdue
+        if (['Sent','Partially Paid'].includes(inv.status) && inv.amount_paid < inv.amount) {
+          const dueD = new Date(inv.due_date);
+          if (dueD < today) inv.status = 'Overdue';
+        }
+        data.invoices.push(inv);
+        if (s.paid > 0) {
+          data.payments.push({
+            id: data.nextPaymentId++,
+            invoice_id: inv.id,
+            amount: s.paid,
+            payment_date: new Date(today.getTime() - 5*86400000).toISOString().slice(0,10),
+            method: 'Bank Transfer',
+            reference: 'TXN-SAMPLE'
+          });
+        }
+      });
+      data.nextInvoiceId = invs.length + 1;
+      saveData(data);
+      return data;
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    let DB = loadData();
+
+    function getCustomer(id) {
+      return DB.customers.find(c => c.id === id);
+    }
+
+    function refreshOverdue() {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      DB.invoices.forEach(inv => {
+        if (['Sent','Partially Paid'].includes(inv.status) && inv.amount_paid < inv.amount) {
+          const due = new Date(inv.due_date);
+          if (due < today) inv.status = 'Overdue';
+        }
+      });
+      saveData(DB);
+    }
+
+    // ==================== NAVIGATION ====================
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        document.getElementById('page-' + btn.dataset.page).classList.remove('hidden');
+        renderAll();
+      });
+    });
+
+    // ==================== RENDER FUNCTIONS ====================
+    function money(n) {
+      return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function statusBadge(status) {
+      const map = {
+        'Draft': 'badge-draft',
+        'Sent': 'badge-sent',
+        'Partially Paid': 'badge-partial',
+        'Paid': 'badge-paid',
+        'Overdue': 'badge-overdue'
+      };
+      return `<span class="badge ${map[status] || ''}">${status}</span>`;
+    }
+
+    function renderDashboard() {
+      refreshOverdue();
+      const totalBilled = DB.invoices.reduce((s,i) => s + i.amount, 0);
+      const totalCollected = DB.invoices.reduce((s,i) => s + i.amount_paid, 0);
+      const outstanding = totalBilled - totalCollected;
+      const openCount = DB.invoices.filter(i => !['Paid','Cancelled','Draft'].includes(i.status)).length;
+      const overdueCount = DB.invoices.filter(i => i.status === 'Overdue').length;
+
+      document.getElementById('metrics').innerHTML = `
+        <div class="metric"><div class="value">${DB.invoices.length}</div><div class="label">Total Invoices</div></div>
+        <div class="metric"><div class="value">${openCount}</div><div class="label">Open Invoices</div></div>
+        <div class="metric danger"><div class="value">${overdueCount}</div><div class="label">Overdue</div></div>
+        <div class="metric"><div class="value">${money(outstanding)}</div><div class="label">Outstanding</div></div>
+      `;
+
+      document.getElementById('cash-position').innerHTML = `
+        <p><strong>Total Billed:</strong> ${money(totalBilled)}</p>
+        <p><strong>Total Collected:</strong> ${money(totalCollected)}</p>
+        <p><strong>Outstanding:</strong> ${money(outstanding)}</p>
+        <p class="text-muted" style="margin-top:8px;">Collection rate: ${totalBilled ? ((totalCollected/totalBilled)*100).toFixed(1) : 0}%</p>
+      `;
+
+      // Aging
+      const today = new Date(); today.setHours(0,0,0,0);
+      const buckets = {
+        'Current (not yet due)': 0,
+        '1-30 days overdue': 0,
+        '31-60 days overdue': 0,
+        '61-90 days overdue': 0,
+        '90+ days overdue': 0
+      };
+      DB.invoices.forEach(inv => {
+        if (['Paid','Cancelled','Draft'].includes(inv.status)) return;
+        const rem = inv.amount - inv.amount_paid;
+        if (rem <= 0) return;
+        const due = new Date(inv.due_date);
+        const days = Math.floor((today - due) / 86400000);
+        if (days <= 0) buckets['Current (not yet due)'] += rem;
+        else if (days <= 30) buckets['1-30 days overdue'] += rem;
+        else if (days <= 60) buckets['31-60 days overdue'] += rem;
+        else if (days <= 90) buckets['61-90 days overdue'] += rem;
+        else buckets['90+ days overdue'] += rem;
+      });
+      let agingHtml = '';
+      for (const [k,v] of Object.entries(buckets)) {
+        agingHtml += `<div class="aging-item"><span>${k}</span><span>${money(v)}</span></div>`;
+      }
+      agingHtml += `<div class="aging-item"><span>Total Outstanding</span><span>${money(outstanding)}</span></div>`;
+      document.getElementById('aging-report').innerHTML = agingHtml;
+
+      // Open invoices table
+      const open = DB.invoices.filter(i => !['Paid','Cancelled','Draft'].includes(i.status));
+      document.getElementById('open-invoices-table').innerHTML = renderInvoiceTable(open);
+    }
+
+    function renderInvoiceTable(list) {
+      if (!list.length) return '<p class="text-muted">No invoices found.</p>';
+      let html = `<table><thead><tr>
+        <th>ID</th><th>Number</th><th>Customer</th><th>Due</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th>
+      </tr></thead><tbody>`;
+      list.forEach(inv => {
+        const cust = getCustomer(inv.customer_id);
+        const bal = inv.amount - inv.amount_paid;
+        html += `<tr>
+          <td>${inv.id}</td>
+          <td>${inv.invoice_number}</td>
+          <td>${cust ? cust.name : '?'}</td>
+          <td>${inv.due_date}</td>
+          <td>${money(inv.amount)}</td>
+          <td>${money(inv.amount_paid)}</td>
+          <td>${money(bal)}</td>
+          <td>${statusBadge(inv.status)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function renderCustomers() {
+      let html = `<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Terms</th><th>Notes</th></tr></thead><tbody>`;
+      DB.customers.forEach(c => {
+        html += `<tr>
+          <td>${c.id}</td><td>${c.name}</td><td>${c.email || '-'}</td>
+          <td>${c.phone || '-'}</td><td>Net ${c.payment_terms}</td><td>${c.notes || '-'}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('customers-table').innerHTML = html;
+    }
+
+    function renderInvoices() {
+      const filter = document.getElementById('invoice-filter').value;
+      let list = DB.invoices;
+      if (filter !== 'All') list = list.filter(i => i.status === filter);
+      document.getElementById('invoices-table').innerHTML = renderInvoiceTable(list);
+
+      // Populate customer select
+      const sel = document.getElementById('inv-customer');
+      sel.innerHTML = DB.customers.map(c => 
+        `<option value="${c.id}">${c.name} (Net ${c.payment_terms})</option>`
+      ).join('');
+    }
+
+    function renderPayment() {
+      const open = DB.invoices.filter(i => !['Paid','Cancelled','Draft'].includes(i.status));
+      document.getElementById('payment-open-table').innerHTML = renderInvoiceTable(open);
+
+      const sel = document.getElementById('pay-invoice');
+      sel.innerHTML = open.map(inv => {
+        const cust = getCustomer(inv.customer_id);
+        const bal = inv.amount - inv.amount_paid;
+        return `<option value="${inv.id}" data-balance="${bal}">
+          ID ${inv.id} – ${inv.invoice_number} (${cust ? cust.name : '?'}) – Balance ${money(bal)}
+        </option>`;
+      }).join('');
+      if (open.length) {
+        document.getElementById('pay-amount').value = open[0].amount - open[0].amount_paid;
+      }
+    }
+
+    function renderReminders() {
+      refreshOverdue();
+      const today = new Date(); today.setHours(0,0,0,0);
+      const list = DB.invoices.filter(i => 
+        ['Sent','Partially Paid','Overdue'].includes(i.status) && i.amount_paid < i.amount
+      ).map(inv => {
+        const due = new Date(inv.due_date);
+        const days = Math.floor((today - due) / 86400000);
+        return { ...inv, days };
+      }).sort((a,b) => a.days - b.days);
+
+      if (!list.length) {
+        document.getElementById('reminders-table').innerHTML = '<p class="text-muted">No invoices currently need reminders. Great!</p>';
+        return;
+      }
+
+      let html = `<table><thead><tr>
+        <th>Number</th><th>Customer</th><th>Email</th><th>Due</th><th>Days</th><th>Balance</th><th>Status</th>
+      </tr></thead><tbody>`;
+      list.forEach(inv => {
+        const cust = getCustomer(inv.customer_id);
+        const daysStr = inv.days < 0 ? `${Math.abs(inv.days)} days left` :
+                        inv.days === 0 ? 'Due today' : `${inv.days} days overdue`;
+        html += `<tr>
+          <td>${inv.invoice_number}</td>
+          <td>${cust ? cust.name : '?'}</td>
+          <td>${cust ? (cust.email || '-') : '-'}</td>
+          <td>${inv.due_date}</td>
+          <td>${daysStr}</td>
+          <td>${money(inv.amount - inv.amount_paid)}</td>
+          <td>${statusBadge(inv.status)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('reminders-table').innerHTML = html;
+    }
+
+    function renderAll() {
+      renderDashboard();
+      renderCustomers();
+      renderInvoices();
+      renderPayment();
+      renderReminders();
+    }
+
+    // ==================== FORM HANDLERS ====================
+    document.getElementById('form-customer').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('cust-name').value.trim();
+      if (!name) return;
+      DB.customers.push({
+        id: DB.nextCustomerId++,
+        name,
+        email: document.getElementById('cust-email').value,
+        phone: document.getElementById('cust-phone').value,
+        payment_terms: parseInt(document.getElementById('cust-terms').value) || 30,
+        notes: document.getElementById('cust-notes').value
+      });
+      saveData(DB);
+      e.target.reset();
+      document.getElementById('cust-terms').value = 30;
+      renderAll();
+      alert('Customer added successfully!');
+    });
+
+    document.getElementById('form-invoice').addEventListener('submit', e => {
+      e.preventDefault();
+      const cid = parseInt(document.getElementById('inv-customer').value);
+      const amount = parseFloat(document.getElementById('inv-amount').value);
+      const days = parseInt(document.getElementById('inv-days').value) || 30;
+      const desc = document.getElementById('inv-desc').value;
+      const markSent = document.getElementById('inv-sent').checked;
+
+      const today = new Date();
+      const due = new Date(today);
+      due.setDate(due.getDate() + days);
+
+      const inv = {
+        id: DB.nextInvoiceId++,
+        invoice_number: `INV-${today.toISOString().slice(0,10).replace(/-/g,'')}-${String(DB.nextInvoiceId-1).padStart(3,'0')}`,
+        customer_id: cid,
+        issue_date: today.toISOString().slice(0,10),
+        due_date: due.toISOString().slice(0,10),
+        amount,
+        amount_paid: 0,
+        status: markSent ? 'Sent' : 'Draft',
+        description: desc
+      };
+      DB.invoices.push(inv);
+      saveData(DB);
+      e.target.reset();
+      document.getElementById('inv-amount').value = 1000;
+      document.getElementById('inv-days').value = 30;
+      renderAll();
+      alert(`Invoice ${inv.invoice_number} created!`);
+    });
+
+    document.getElementById('pay-invoice').addEventListener('change', function() {
+      const opt = this.options[this.selectedIndex];
+      if (opt) document.getElementById('pay-amount').value = opt.dataset.balance;
+    });
+
+    document.getElementById('form-payment').addEventListener('submit', e => {
+      e.preventDefault();
+      const invId = parseInt(document.getElementById('pay-invoice').value);
+      const amount = parseFloat(document.getElementById('pay-amount').value);
+      const method = document.getElementById('pay-method').value;
+      const ref = document.getElementById('pay-ref').value;
+
+      const inv = DB.invoices.find(i => i.id === invId);
+      if (!inv) return alert('Invoice not found');
+      const remaining = inv.amount - inv.amount_paid;
+      if (amount > remaining + 0.01) return alert(`Amount exceeds remaining balance (${money(remaining)})`);
+
+      inv.amount_paid += amount;
+      if (inv.amount_paid >= inv.amount - 0.01) inv.status = 'Paid';
+      else inv.status = 'Partially Paid';
+
+      DB.payments.push({
+        id: DB.nextPaymentId++,
+        invoice_id: invId,
+        amount,
+        payment_date: new Date().toISOString().slice(0,10),
+        method,
+        reference: ref
+      });
+      saveData(DB);
+      renderAll();
+      alert(`Payment recorded! Invoice is now ${inv.status}`);
+    });
+
+    document.getElementById('invoice-filter').addEventListener('change', renderInvoices);
+
+    document.getElementById('btn-send-reminders').addEventListener('click', () => {
+      alert('Reminders simulated and logged for all open invoices.\n(In production these would be emailed/SMS.)');
+    });
+
+    // Initial render
+    renderAll();
+  </script>
+</body>
+</html>
